@@ -1,0 +1,138 @@
+openapi: 3.1.0
+info:
+  title: AISStream.io Hybrid REST + WebSocket API
+  version: 0.2.0
+  description: >
+    Hybrid OpenAPI 3.1 spec for AISStream.io.
+    Includes:
+    - Fictive REST endpoints (for Collate collection structuring)
+    - Real WebSocket webhook definition
+    - Real message schemas from AISStream.io
+
+servers:
+  - url: https://aisstream.io
+    description: Documentation / REST placeholder
+  - url: wss://stream.aisstream.io/v0/stream
+    description: WebSocket AISStream entrypoint
+
+tags:
+  - name: Subscription
+    description: REST-like metadata endpoints for subscription workflow
+  - name: Streaming
+    description: AIS WebSocket streaming API
+  - name: Models
+    description: AIS message data models
+
+paths:
+
+  /subscription:
+    post:
+      tags: [Subscription]
+      summary: Documented method to describe AISStream subscription
+      description: >
+        This is NOT a real REST endpoint.
+        AISStream uses WebSocket only.
+        This endpoint exists only so that tools like Collate can structure
+        API collections and show the Subscription schema.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubscriptionMessage'
+      responses:
+        '200':
+          description: Subscription schema acknowledged (documentation-only)
+
+  /stream/info:
+    get:
+      tags: [Streaming]
+      summary: AISStream WebSocket information
+      description: >
+        Documentation-only REST endpoint describing the WebSocket API.
+      responses:
+        '200':
+          description: Returns info about WebSocket usage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  websocketUrl:
+                    type: string
+                    example: wss://stream.aisstream.io/v0/stream
+                  note:
+                    type: string
+                    example: "Connect via WebSocket only. Use SubscriptionMessage."
+
+webhooks:
+  aisstreamMessages:
+    post:
+      tags: [Streaming]
+      summary: Incoming AIS messages delivered via WebSocket
+      description: >
+        Webhook representation of AISStream WebSocket incoming messages.
+        The server pushes AIS messages after subscription.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AISMessage'
+      responses:
+        '200':
+          description: Acknowledged
+
+components:
+  securitySchemes:
+    ApiKeyHeader:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: >
+        WebSocket APIKey header equivalent for documentation.
+        NOTE: In practice, AISStream requires APIKey inside the SUBSCRIPTION MESSAGE,
+        not a header.
+
+  schemas:
+
+    SubscriptionMessage:
+      type: object
+      required: [APIKey, BoundingBoxes]
+      description: Subscription format as defined in AISStream documentation.
+      properties:
+        APIKey:
+          type: string
+          description: AISStream API key (sent via WebSocket JSON message).
+        BoundingBoxes:
+          type: array
+          description: >
+            List of bounding boxes: [[lon_min, lat_min], [lon_max, lat_max]]
+          items:
+            type: array
+            minItems: 2
+            maxItems: 2
+            items: { type: number }
+        FiltersShipMMSI:
+          type: array
+          description: Filter for specific vessel MMSI.
+          items: { type: string }
+        FilterMessageTypes:
+          type: array
+          description: Filter AIS message families (e.g. PositionReport)
+          items: { type: string }
+
+    AISMessage:
+      type: object
+      description: >
+        Wrapper for AIS incoming streaming messages.
+      properties:
+        MessageType:
+          type: string
+          description: AIS message type (e.g. PositionReport)
+        Message:
+          type: object
+          description: Message payload (vessel data)
+        MetaData:
+          type: object
+          description: Additional contextual metadata
