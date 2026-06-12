@@ -1,0 +1,280 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Kpler AIS API",
+    "version": "v2",
+    "description": "AIS API providing real-time and historical vessel position data."
+  },
+  "servers": [
+    {
+      "url": "https://api.kpler.com/v2/maritime",
+      "description": "Production"
+    },
+    {
+      "url": "https://kong.dev.galil.io/v2/maritime",
+      "description": "Development"
+    }
+  ],
+  "security": [
+    {
+      "AuthHeader": []
+    }
+  ],
+  "paths": {
+    "/ais-latest": {
+      "get": {
+        "operationId": "getLatestAIS",
+        "tags": ["AIS - Latest"],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["json", "csv"],
+              "default": "json"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Latest vessel positions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestVesselPositionFeatureCollection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamingResponseBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postLatestAIS",
+        "tags": ["AIS - Latest"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncomingLatestClientRequest"
+              },
+              "example": {
+                "filter": "dwt >= 200000",
+                "format": "json",
+                "limit": 3
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Latest vessel positions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestVesselPositionFeatureCollection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamingResponseBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ais-historical": {
+      "get": {
+        "operationId": "getHistoricalAIS",
+        "tags": ["AIS - Historical"],
+        "parameters": [
+          {
+            "name": "filter",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historical vessel positions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoricVesselPositionFeatureCollection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamingResponseBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "postHistoricalAIS",
+        "tags": ["AIS - Historical"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IncomingHistoricalClientRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Historical vessel positions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoricVesselPositionFeatureCollection"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamingResponseBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "AuthHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Authorization"
+      }
+    },
+    "schemas": {
+      "StreamingResponseBody": {
+        "type": "object",
+        "description": "Generic error response"
+      },
+      "IncomingLatestClientRequest": {
+        "type": "object",
+        "properties": {
+          "filter": { "type": "string" },
+          "format": {
+            "type": "string",
+            "enum": ["json", "csv"],
+            "default": "json"
+          },
+          "limit": { "type": "integer" }
+        }
+      },
+      "IncomingHistoricalClientRequest": {
+        "type": "object",
+        "required": ["filter"],
+        "properties": {
+          "filter": { "type": "string" },
+          "downsample": {
+            "type": "string",
+            "enum": ["none", "dynamic"],
+            "default": "dynamic"
+          }
+        }
+      },
+      "Geometry": {
+        "type": "object",
+        "required": ["type", "coordinates"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["Point"]
+          },
+          "coordinates": {
+            "type": "array",
+            "items": { "type": "number" }
+          }
+        }
+      },
+      "Feature": {
+        "type": "object",
+        "required": ["type", "geometry", "properties"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["Feature"]
+          },
+          "geometry": {
+            "$ref": "#/components/schemas/Geometry"
+          },
+          "properties": {
+            "type": "object"
+          }
+        }
+      },
+      "LatestVesselPositionFeatureCollection": {
+        "type": "object",
+        "required": ["features"],
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Feature"
+            }
+          }
+        }
+      },
+      "HistoricVesselPositionFeatureCollection": {
+        "type": "object",
+        "required": ["features"],
+        "properties": {
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Feature"
+            }
+          }
+        }
+      }
+    }
+  }
+}
